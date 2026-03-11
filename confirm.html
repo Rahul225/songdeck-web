@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Email Confirmed — SongDeck</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0C0C10;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #16161C;
+      border: 1px solid #2a2a35;
+      border-radius: 24px;
+      padding: 48px 40px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 32px;
+      letter-spacing: -0.5px;
+    }
+
+    .logo span.song { color: #ffffff; font-weight: 400; }
+    .logo span.deck { color: #B026FF; }
+
+    .check {
+      width: 72px;
+      height: 72px;
+      background: rgba(56, 191, 160, 0.12);
+      border: 1px solid rgba(56, 191, 160, 0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 32px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+
+    p {
+      color: #888;
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .open-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #B026FF, #FF007F);
+      color: #ffffff;
+      text-decoration: none;
+      padding: 16px 40px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      width: 100%;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.2s;
+    }
+
+    .open-btn:hover { opacity: 0.85; }
+
+    .hint {
+      color: #555;
+      font-size: 13px;
+      margin-top: 20px;
+      margin-bottom: 0;
+    }
+
+    .footer {
+      margin-top: 40px;
+      color: #444;
+      font-size: 13px;
+    }
+
+    /* Error state */
+    .check.error {
+      background: rgba(232, 84, 122, 0.12);
+      border-color: rgba(232, 84, 122, 0.3);
+    }
+
+    /* Loading state */
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #2a2a35;
+      border-top-color: #B026FF;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 24px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="logo">
+      <span class="song">Song</span><span class="deck">Deck</span>
+    </div>
+
+    <!-- Loading state -->
+    <div id="loading">
+      <div class="spinner"></div>
+      <h1>Confirming your email...</h1>
+      <p>Just a moment while we verify your account.</p>
+    </div>
+
+    <!-- Success state -->
+    <div id="success" class="hidden">
+      <div class="check">✓</div>
+      <h1>Email Confirmed!</h1>
+      <p>Your SongDeck account is now active. Open the app to start building your library.</p>
+      <a href="songdeck://confirm" class="open-btn">Open SongDeck</a>
+      <p class="hint">Don't have the app yet? Download it on Google Play.</p>
+    </div>
+
+    <!-- Error state -->
+    <div id="error" class="hidden">
+      <div class="check error">✕</div>
+      <h1>Something went wrong</h1>
+      <p>This confirmation link may have expired or already been used. Try signing in or request a new confirmation email.</p>
+      <a href="https://songdeck-website.vercel.app" class="open-btn" style="text-decoration:none;">Go to SongDeck</a>
+    </div>
+  </div>
+
+  <div class="footer">© 2025 SongDeck. All rights reserved.</div>
+
+  <script>
+    // Parse the URL hash — Supabase sends tokens as hash fragments
+    function getHashParams() {
+      const hash = window.location.hash.substring(1);
+      const params = {};
+      hash.split('&').forEach(part => {
+        const [key, value] = part.split('=');
+        if (key) params[decodeURIComponent(key)] = decodeURIComponent(value || '');
+      });
+      return params;
+    }
+
+    function getQueryParams() {
+      const params = {};
+      window.location.search.substring(1).split('&').forEach(part => {
+        const [key, value] = part.split('=');
+        if (key) params[decodeURIComponent(key)] = decodeURIComponent(value || '');
+      });
+      return params;
+    }
+
+    window.addEventListener('load', () => {
+      const hash = getHashParams();
+      const query = getQueryParams();
+
+      const hasError = hash.error || query.error;
+      const hasToken = hash.access_token || query.token_hash || hash.type === 'signup';
+
+      setTimeout(() => {
+        document.getElementById('loading').classList.add('hidden');
+
+        if (hasError) {
+          document.getElementById('error').classList.remove('hidden');
+        } else if (hasToken || window.location.href.includes('confirm')) {
+          document.getElementById('success').classList.remove('hidden');
+          // Auto-attempt to open the app after a short delay
+          setTimeout(() => {
+            window.location.href = 'songdeck://confirm';
+          }, 1500);
+        } else {
+          document.getElementById('error').classList.remove('hidden');
+        }
+      }, 1200);
+    });
+  </script>
+
+</body>
+</html>
